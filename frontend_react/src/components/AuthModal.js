@@ -29,22 +29,22 @@ function AuthModal({ close, afterLogin }) {
         afterLogin(user);
       })
       .catch((err) => {
-        // Enhanced error handling: display readable error message even if error is an object
+        // Enhanced error handling to always display readable error message
         let message = "";
         if (err) {
-          if (typeof err === "string") {
-            message = err;
-          } else if (err.message) {
-            message = err.message;
-          } else if (typeof err === "object") {
+          if (typeof err === "string") message = err;
+          else if (err.message) message = err.message;
+          else if (typeof err === "object") {
             try {
-              message =
+              message = (
                 err.error ||
                 err.detail ||
+                err.msg ||
                 JSON.stringify(err, null, 2) ||
                 (mode === "signup"
                   ? "Failed to sign up."
-                  : "Login failed. Check your credentials.");
+                  : "Login failed. Check your credentials.")
+              );
             } catch {
               message =
                 (mode === "signup"
@@ -63,7 +63,7 @@ function AuthModal({ close, afterLogin }) {
         }
         setErrors(message);
         // For developer: log details for diagnostics
-        if (window && window.console) {
+        if (typeof window !== "undefined" && window.console) {
           window.console.error("Auth error:", err);
         }
       })

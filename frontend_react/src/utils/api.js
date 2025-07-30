@@ -17,7 +17,10 @@ function checkApiBase() {
   return null;
 }
 
-// Enhanced fetch function: Catches network/backend errors for all API requests
+/**
+ * Enhanced fetch function: Catches network/backend errors for all API requests,
+ * and surfaces readable error messages (never [object Object]).
+ */
 async function safeFetch(...args) {
   const apiBaseErrorMsg = checkApiBase();
   if (apiBaseErrorMsg) {
@@ -29,12 +32,37 @@ async function safeFetch(...args) {
     if (resp.status === 204) return {};
     const data = await resp.json().catch(() => ({}));
     if (resp.ok) return data;
-    // propagate error from backend in readable way
-    return Promise.reject(data && typeof data === "object" ? data : { message: "API Error" });
+
+    // Construct a readable error message for all error types (avoid "[object Object]")
+    let readableError = "";
+    if (data) {
+      if (typeof data === "string") {
+        readableError = data;
+      } else if (data.error) {
+        readableError = data.error;
+      } else if (data.detail) {
+        readableError = data.detail;
+      } else if (data.message) {
+        readableError = data.message;
+      } else if (typeof data === "object") {
+        readableError = JSON.stringify(data, null, 2);
+      } else {
+        readableError = "API Error";
+      }
+    } else {
+      readableError = "API Error";
+    }
+
+    return Promise.reject({
+      message: readableError
+    });
   } catch (err) {
     // Network, CORS, or other errors
     return Promise.reject({
-      message: "Failed to connect to the backend. Please check your network connection or contact the administrator."
+      message:
+        (err && err.message)
+          ? err.message
+          : "Failed to connect to the backend. Please check your network connection or contact the administrator."
     });
   }
 }
