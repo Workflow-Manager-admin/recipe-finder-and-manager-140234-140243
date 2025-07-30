@@ -4,98 +4,113 @@ const API_BASE =
 /**
  * Lightweight API utility for backend HTTP/REST communication.
  * Methods: getAllRecipes, searchRecipes, getFavorites, favoriteRecipe, unfavoriteRecipe, submitRecipe, loginUser, signupUser, logoutUser, getMe
+ *
+ * Friendly error handling for connectivity and config issues.
  */
-function handleResponse(r) {
-  if (r.status === 204) return {};
-  return r.json().then((data) =>
-    r.ok ? data : Promise.reject(data)
-  );
+
+// Helper to check if the API base URL is configured
+function checkApiBase() {
+  if (!process.env.REACT_APP_BACKEND_URL && API_BASE === "http://localhost:8000/api") {
+    // Instruct developer if they forgot to set the backend URL
+    return "The backend URL is not configured. Please set REACT_APP_BACKEND_URL in your .env file.";
+  }
+  return null;
+}
+
+// Enhanced fetch function: Catches network/backend errors for all API requests
+async function safeFetch(...args) {
+  const apiBaseErrorMsg = checkApiBase();
+  if (apiBaseErrorMsg) {
+    return Promise.reject({ message: apiBaseErrorMsg });
+  }
+  try {
+    // Standard fetch
+    const resp = await fetch(...args);
+    if (resp.status === 204) return {};
+    const data = await resp.json().catch(() => ({}));
+    if (resp.ok) return data;
+    // propagate error from backend in readable way
+    return Promise.reject(data && typeof data === "object" ? data : { message: "API Error" });
+  } catch (err) {
+    // Network, CORS, or other errors
+    return Promise.reject({
+      message: "Failed to connect to the backend. Please check your network connection or contact the administrator."
+    });
+  }
 }
 
 // PUBLIC_INTERFACE
 export function getAllRecipes() {
-  return fetch(`${API_BASE}/recipes`).then(handleResponse);
+  return safeFetch(`${API_BASE}/recipes`);
 }
 
 // PUBLIC_INTERFACE
 export function searchRecipes(q) {
-  return fetch(`${API_BASE}/recipes/search?q=${encodeURIComponent(q)}`).then(
-    handleResponse
-  );
+  return safeFetch(`${API_BASE}/recipes/search?q=${encodeURIComponent(q)}`);
 }
 
 // PUBLIC_INTERFACE
 export function getFavorites() {
-  return fetch(`${API_BASE}/favorites`, { credentials: "include" }).then(
-    handleResponse
-  );
+  return safeFetch(`${API_BASE}/favorites`, { credentials: "include" });
 }
 
 // PUBLIC_INTERFACE
 export function favoriteRecipe(recipeId) {
-  return fetch(`${API_BASE}/favorites/${recipeId}`, {
+  return safeFetch(`${API_BASE}/favorites/${recipeId}`, {
     method: "POST",
     credentials: "include"
-  }).then(handleResponse);
+  });
 }
 
 // PUBLIC_INTERFACE
 export function unfavoriteRecipe(recipeId) {
-  return fetch(`${API_BASE}/favorites/${recipeId}`, {
+  return safeFetch(`${API_BASE}/favorites/${recipeId}`, {
     method: "DELETE",
     credentials: "include"
-  }).then(handleResponse);
+  });
 }
 
 // PUBLIC_INTERFACE
 export function submitRecipe(recipe) {
-  return fetch(`${API_BASE}/recipes`, {
+  return safeFetch(`${API_BASE}/recipes`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(recipe),
     credentials: "include"
-  }).then(handleResponse);
+  });
 }
 
 // PUBLIC_INTERFACE
 export function loginUser({ email, password }) {
-  return fetch(`${API_BASE}/auth/login`, {
+  return safeFetch(`${API_BASE}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
     body: JSON.stringify({ email, password }),
-  })
-    .then(handleResponse)
-    .then((user) => {
-      return user;
-    });
+  }).then((user) => user);
 }
 
 // PUBLIC_INTERFACE
 export function signupUser({ email, password }) {
-  return fetch(`${API_BASE}/auth/signup`, {
+  return safeFetch(`${API_BASE}/auth/signup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
     body: JSON.stringify({ email, password }),
-  })
-    .then(handleResponse)
-    .then((user) => {
-      return user;
-    });
+  }).then((user) => user);
 }
 
 // PUBLIC_INTERFACE
 export function logoutUser() {
-  return fetch(`${API_BASE}/auth/logout`, {
+  return safeFetch(`${API_BASE}/auth/logout`, {
     method: "POST",
     credentials: "include",
-  }).then(handleResponse);
+  });
 }
 
 // PUBLIC_INTERFACE
 export function getMe() {
-  return fetch(`${API_BASE}/auth/me`, {
+  return safeFetch(`${API_BASE}/auth/me`, {
     credentials: "include"
-  }).then(handleResponse);
+  });
 }
