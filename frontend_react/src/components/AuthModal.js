@@ -28,14 +28,45 @@ function AuthModal({ close, afterLogin }) {
       .then((user) => {
         afterLogin(user);
       })
-      .catch((err) =>
-        setErrors(
-          err?.message ||
-            (mode === "signup"
+      .catch((err) => {
+        // Enhanced error handling: display readable error message even if error is an object
+        let message = "";
+        if (err) {
+          if (typeof err === "string") {
+            message = err;
+          } else if (err.message) {
+            message = err.message;
+          } else if (typeof err === "object") {
+            try {
+              message =
+                err.error ||
+                err.detail ||
+                JSON.stringify(err, null, 2) ||
+                (mode === "signup"
+                  ? "Failed to sign up."
+                  : "Login failed. Check your credentials.");
+            } catch {
+              message =
+                (mode === "signup"
+                  ? "Failed to sign up."
+                  : "Login failed. Check your credentials.");
+            }
+          } else {
+            message = (mode === "signup"
               ? "Failed to sign up."
-              : "Login failed. Check your credentials.")
-        )
-      )
+              : "Login failed. Check your credentials.");
+          }
+        } else {
+          message = (mode === "signup"
+            ? "Failed to sign up."
+            : "Login failed. Check your credentials.");
+        }
+        setErrors(message);
+        // For developer: log details for diagnostics
+        if (window && window.console) {
+          window.console.error("Auth error:", err);
+        }
+      })
       .finally(() => setLoading(false));
   };
 
