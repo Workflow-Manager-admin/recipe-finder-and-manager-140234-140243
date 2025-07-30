@@ -44,7 +44,32 @@ function SubmitRecipeModal({ onClose, afterSubmit }) {
         setInstructions("");
         if (afterSubmit) afterSubmit();
       })
-      .catch(() => setError("Failed to submit recipe. Try again!"))
+      .catch((err) => {
+        // Enhanced error handling: avoid displaying [object Object] in UI
+        let message = "";
+        if (err) {
+          if (typeof err === "string") {
+            message = err;
+          } else if (err.message) {
+            message = err.message;
+          } else if (typeof err === "object") {
+            try {
+              message = err.error || err.detail || JSON.stringify(err, null, 2) || "Failed to submit recipe. Try again!";
+            } catch {
+              message = "Failed to submit recipe. Try again!";
+            }
+          } else {
+            message = "Failed to submit recipe. Try again!";
+          }
+        } else {
+          message = "Failed to submit recipe. Try again!";
+        }
+        setError(message);
+        // For developer: log details for diagnostics
+        if (window && window.console) {
+          window.console.error("SubmitRecipe error:", err);
+        }
+      })
       .finally(() => setSubmitting(false));
   };
 
